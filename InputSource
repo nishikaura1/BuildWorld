@@ -1,0 +1,6 @@
+package byow.Core;
+
+public interface InputSource {
+    public char next();
+    public boolean hasNext();
+}
