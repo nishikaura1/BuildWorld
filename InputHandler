@@ -1,0 +1,117 @@
+package byow.Core;
+
+import byow.TileEngine.TERenderer;
+import byow.TileEngine.TETile;
+import edu.princeton.cs.algs4.StdDraw;
+import java.awt.*;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.util.Random;
+
+public class InputHandler {
+
+    private TETile[][] finalWorldFrame;
+    private TERenderer ter;
+    private InputSource inputSource;
+
+    public InputHandler(TETile[][] finalWorldFrame, TERenderer ter) {
+        this.finalWorldFrame = finalWorldFrame;
+        this.ter = ter;
+    }
+
+    public void handleInput(String input) {
+        if (input.length() == 0) {
+            inputSource = new KeyboardInputSource();
+            handleInput(true);
+            System.exit(0);
+        } else {
+            inputSource = new StringInputDevice(input);
+            handleInput(false);
+        }
+    }
+
+    private void handleInput(boolean display) {
+        renderMainMenu(display);
+        while (true) {
+            if (inputSource.hasNext()) {
+                char c = inputSource.next();
+                if (c == 'N') {
+                    long seed = Long.parseLong(startNewGame(display));
+                    buildWorld(seed, "", "", display, false);
+                    return;
+                } else if (c == 'L') {
+                    openWorld("world.txt", display, false);
+                    return;
+                } else if (c == 'R') {
+                    openWorld("world.txt", display, display);
+                    return;
+                } else if (c == 'Q') {
+                    return;
+                }
+            }
+        }
+    }
+
+    private String startNewGame(boolean display) {
+        String values = "";
+        renderSeedInputScreen(values, display);
+        while (true) {
+            if (inputSource.hasNext()) {
+                char c = inputSource.next();
+                if (c == 'S') {
+                    return values;
+                }
+                else {
+                    values += c;
+                    renderSeedInputScreen(values, display);
+                }
+            }
+        }
+    }
+
+    private void openWorld(String filename, boolean display, boolean replayDisplay) {
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader(filename));
+            String[] inputs = reader.readLine().split(" ");
+            long seed = Long.parseLong(inputs[2]);
+            buildWorld(seed, inputs[0], inputs[1], display, replayDisplay);
+        }
+        catch (Exception e) {}
+    }
+
+    private void buildWorld(long seed, String prevMovement, String replayMovement, boolean display, boolean replayDisplay) {
+        Random r = new Random(seed);
+        WorldGenerator w = new WorldGenerator(finalWorldFrame, r);
+        w.createWorld();
+        Interactor i = new Interactor(finalWorldFrame, inputSource, ter, r, seed);
+        i.interact(prevMovement, replayMovement, display, replayDisplay);
+    }
+
+    private void renderMainMenu(boolean display) {
+        if (display) {
+            StdDraw.clear(Color.BLACK);
+            StdDraw.setPenColor(Color.WHITE);
+            StdDraw.setFont(new Font("Monaco", Font.BOLD, 25));
+            StdDraw.text(finalWorldFrame.length/2, 24, "CS61B: THE GAME");
+            StdDraw.setFont(new Font("Monaco", Font.BOLD, 17));
+            StdDraw.text(finalWorldFrame.length/2, 17, "New Game (N)");
+            StdDraw.text(finalWorldFrame.length/2, 15, "Load Game (L)");
+            StdDraw.text(finalWorldFrame.length/2, 13, "Replay Game (R)");
+            StdDraw.text(finalWorldFrame.length/2, 11, "Quit (Q)");
+            StdDraw.show();
+        }
+    }
+
+    private void renderSeedInputScreen(String values, boolean display) {
+        if (display) {
+            StdDraw.clear(Color.BLACK);
+            StdDraw.setPenColor(Color.WHITE);
+            StdDraw.setFont(new Font("Monaco", Font.BOLD, 25));
+            StdDraw.text(finalWorldFrame.length/2, 24, "ENTER SEED:");
+            StdDraw.setFont(new Font("Monaco", Font.BOLD, 17));
+            StdDraw.text(finalWorldFrame.length/2, 15, values);
+            StdDraw.show();
+        }
+    }
+
+}
