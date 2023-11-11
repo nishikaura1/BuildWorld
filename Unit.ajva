@@ -1,0 +1,88 @@
+package byow.Core;
+import byow.TileEngine.TETile;
+import byow.TileEngine.Tileset;
+import java.util.ArrayList;
+import java.util.List;
+
+public class Unit {
+    private Position botPos;
+    private int width;
+    private int height;
+    private List<Position> connections;
+
+    public Unit(Position botPos, int width, int height) {
+        this.botPos = botPos;
+        this.width= width;
+        this.height = height;
+        this.connections = new ArrayList<>();
+    }
+
+    public int getX() {
+        return botPos.getX();
+    }
+    public int getY() {
+        return botPos.getY();
+    }
+    public int getWidth() {
+        return width;
+    }
+    public int getHeight() {
+        return height;
+    }
+
+    /**
+     * @source [https://www.geeksforgeeks.org/find-two-rectangles-overlap/]
+     **/
+    public boolean overlap(Unit other) {
+        Position l1 = botPos.add(0, height-1);
+        Position r1 = botPos.add(width-1, 0);
+        Position l2 = other.botPos.add(0, other.height - 1);
+        Position r2 = other.botPos.add(other.width - 1, 0);
+
+        if (l1.getX() == r1.getX() || l1.getY() == r1.getY() || r2.getX() == l2.getX() || l2.getY() == r2.getY()) {
+            return false;
+        }
+        if (l1.getX() > r2.getX() || l2.getX() > r1.getX()) {
+            return false;
+        }
+        if (r1.getY() > l2.getY() || r2.getY() > l1.getY()) {
+            return false;
+        }
+        return true;
+    }
+
+    public boolean isValid(TETile[][] worldFrame) {
+        Position topRightPos = botPos.add(width-1, height-1);
+        return isValid(botPos, worldFrame) && isValid(topRightPos, worldFrame);
+    }
+
+    private boolean isValid(Position pos, TETile[][] worldFrame) {
+        return pos.getX()>=0 && pos.getX()<worldFrame.length &&
+                pos.getY()>=0 && pos.getY()<worldFrame[0].length;
+    }
+
+    public void addConnection(Position p) {
+        connections.add(p);
+    }
+
+    public void draw(TETile[][] worldFrame) {
+        int botLeftX = botPos.getX();
+        int botLeftY = botPos.getY();
+
+        for (int i = botLeftX; i < botLeftX + width; i++) {
+            for (int j = botLeftY; j < botLeftY + height; j++) {
+                if (!connections.contains(new Position(i, j))) {
+                    worldFrame[i][j] = Tileset.WALL;
+                }
+                else {
+                    worldFrame[i][j] = Tileset.FLOOR;
+                }
+            }
+        }
+        for(int i = botLeftX+1; i < botLeftX + width - 1; i++) {
+            for (int j = botLeftY+1; j < botLeftY + height - 1; j++) {
+                worldFrame[i][j] = Tileset.FLOOR;
+            }
+        }
+    }
+}
