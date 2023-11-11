@@ -1,0 +1,135 @@
+package byow.Core;
+
+import byow.TileEngine.TETile;
+import byow.TileEngine.Tileset;
+import java.util.*;
+
+public class WorldGenerator {
+    public static final int MIN_UNIT_SIZE = 3;
+    public static final int MAX_UNIT_SIZE = 8;
+    public static final int MIN_UNITS = 45;
+    public static final int MAX_UNITS = 70;
+    private TETile[][] finalWorldFrame;
+    private Random random;
+    private Unit hub;
+    private int threshold;
+    private List<Unit> listOfUnits;
+    private Queue<Unit> currentUnits;
+
+
+    public WorldGenerator(TETile[][] finalWorldFrame, Random random) {
+        this.finalWorldFrame = finalWorldFrame;
+        this.random = random;
+        this.hub = new Unit(new Position(0, finalWorldFrame[0].length - 2), finalWorldFrame.length, 2);
+        this.listOfUnits = new ArrayList<>();
+        this.currentUnits = new LinkedList<>();
+        this.threshold = random.nextInt(MIN_UNITS, MAX_UNITS+1);
+        for (int i = 0; i < finalWorldFrame.length; i++) {
+            for (int j = 0; j < finalWorldFrame[i].length; j++) {
+                finalWorldFrame[i][j] = Tileset.NOTHING;
+            }
+        }
+    }
+    public void createWorld() {
+        Unit startUnit = new Unit(new Position(random.nextInt(0, finalWorldFrame.length),
+                random.nextInt(0, finalWorldFrame[0].length)), MAX_UNIT_SIZE, MAX_UNIT_SIZE);
+        while (!startUnit.isValid(finalWorldFrame) || startUnit.overlap(hub)) {
+            startUnit = new Unit(new Position(random.nextInt(0, finalWorldFrame.length),
+                    random.nextInt(0, finalWorldFrame[0].length)), MAX_UNIT_SIZE, MAX_UNIT_SIZE);
+        }
+        addUnit(startUnit);
+        expandWorld();
+        drawWorld();
+    }
+
+    private void expandWorld() {
+        if(currentUnits.size()==0) {
+            return;
+        }
+        Unit currUnit = currentUnits.remove();
+        addNeighbors(currUnit);
+        expandWorld();
+    }
+
+    private void drawWorld() {
+        for(Unit unit: listOfUnits) {
+            unit.draw(finalWorldFrame);
+        }
+    }
+
+    private boolean addUnit(Unit unit) {
+        if (!unit.isValid(finalWorldFrame) || unit.overlap(hub)) {
+            return false;
+        }
+        for (Unit u: listOfUnits) {
+            if (u.overlap(unit)) {
+                return false;
+            }
+        }
+        currentUnits.add(unit);
+        this.listOfUnits.add(unit);
+        return true;
+    }
+
+    private void addNeighbors(Unit unit) {
+        addVerticalNeighbor(unit, "top");
+        addVerticalNeighbor(unit, "bot");
+        addHorizontalNeighbor(unit, "right");
+        addHorizontalNeighbor(unit, "left");
+    }
+
+    private void addVerticalNeighbor(Unit unit, String dir) {
+        if (listOfUnits.size()>=threshold) {
+            return;
+        }
+        int widthNeighbor = random.nextInt(MIN_UNIT_SIZE, MAX_UNIT_SIZE+1);
+        int heightNeighbor = random.nextInt(MIN_UNIT_SIZE, MAX_UNIT_SIZE+1);
+        int connectionPoint = random.nextInt(unit.getX()+1, unit.getX() + unit.getWidth() - 1);
+        int botLeftXNeighbor = connectionPoint - 1;
+        if (random.nextDouble()<=0.5) {
+            botLeftXNeighbor = connectionPoint + 2 - widthNeighbor;
+        }
+        int botLeftYNeighbor = unit.getY() + unit.getHeight();
+        if (dir=="bot") {
+            botLeftYNeighbor = unit.getY() - heightNeighbor;
+        }
+        Unit verticalNeighbor = new Unit(new Position(botLeftXNeighbor, botLeftYNeighbor), widthNeighbor, heightNeighbor);
+        boolean added = addUnit(verticalNeighbor);
+
+        if(added && dir=="top") {
+            unit.addConnection(new Position(connectionPoint, botLeftYNeighbor - 1));
+            verticalNeighbor.addConnection(new Position(connectionPoint, botLeftYNeighbor));
+        }
+        else if(added) {
+            unit.addConnection(new Position(connectionPoint, unit.getY()));
+            verticalNeighbor.addConnection(new Position(connectionPoint, unit.getY() - 1));
+        }
+    }
+    private void addHorizontalNeighbor(Unit unit, String dir) {
+        if (listOfUnits.size()>=threshold) {
+            return;
+        }
+        int widthNeighbor = random.nextInt(MIN_UNIT_SIZE, MAX_UNIT_SIZE+1);
+        int heightNeighbor = random.nextInt(MIN_UNIT_SIZE, MAX_UNIT_SIZE+1);
+        int connectionPoint = random.nextInt(unit.getY()+1, unit.getY() + unit.getHeight() - 1);
+        int botLeftYNeighbor = connectionPoint - 1;
+        if (random.nextDouble()<=0.5) {
+            botLeftYNeighbor = connectionPoint + 2 - heightNeighbor;
+        }
+        int botLeftXNeighbor = unit.getX() + unit.getWidth();
+        if(dir=="left") {
+            botLeftXNeighbor = unit.getX() - widthNeighbor;
+        }
+        Unit horizontalNeighbor = new Unit(new Position(botLeftXNeighbor, botLeftYNeighbor), widthNeighbor, heightNeighbor);
+        boolean added = addUnit(horizontalNeighbor);
+
+        if(added && dir=="right") {
+            unit.addConnection(new Position(botLeftXNeighbor - 1, connectionPoint));
+            horizontalNeighbor.addConnection(new Position(botLeftXNeighbor, connectionPoint));
+        }
+        else if(added) {
+            unit.addConnection(new Position(unit.getX(), connectionPoint));
+            horizontalNeighbor.addConnection(new Position(unit.getX()-1, connectionPoint));
+        }
+    }
+}
